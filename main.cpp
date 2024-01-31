@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "model.h"
-
+#include "render.h"
 
 class ColorTask : public hhTask
 {
@@ -31,7 +31,16 @@ public:
 
     void Render(hhModel& model) override
     {
-
+        for (int y=0; y < 20; y++)
+        {
+            for (int x=0; x < 20; x++)
+            {
+                column input = {x / 20.0f, y / 20.0f};
+                model.Predict(input);
+                const auto& output = model.layers.back()->activationValue;
+                printf("(%d, %d) -> (%.2f, %.2f, %.2f)\n", x, y, output[0], output[1], output[2]);
+            }
+        }
     }
 };
 
@@ -42,12 +51,35 @@ int main(int, char**)
     hhModel model;
     model.Configure(task);
 
-    for (int i=0; i < 10000; i++)
+    renderWindow rw;
+
+    const int gridSize = 80;
+    matrix outs(gridSize*gridSize);
+    for (auto&& o : outs)
+        o.resize(3, 0); // (r,g,b)
+    
+    bool running = 1;
+    while (running)
     {
         model.Train();
-        if (model.lastTrainError < 0.001f)
+
+        for (int y=0; y < gridSize; y++)
         {
-            break;
+            for (int x=0; x < gridSize; x++)
+            {
+                column ins(2); // (x,y)
+                ins[0] = x*1.0f/gridSize;
+                ins[1] = y*1.0f/gridSize;
+                model.Predict(ins);
+                outs[y*gridSize + x] = model.layers.back()->activationValue;           
+            }
         }
+
+        rw.ProcessEvents(running);
+
+        rw.BeginDisplay();
+        rw.DisplayTitle(model.numEpochs, model.lastTrainError, "Helper");
+        rw.DisplayGrid(gridSize, outs);
+        rw.EndDisplay();
     }
 }
