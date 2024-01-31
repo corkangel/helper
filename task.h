@@ -6,7 +6,6 @@ enum class hhLayerType
 {
     None,
     Input,
-    Ouput,
     Sigmoid,
     Relu,
     Softmax,
@@ -39,6 +38,6 @@ public:
     std::vector<hhTaskLayer> layers;
 
     virtual void Configure(hhModel& model) = 0;
-    virtual void Render(hhModel& model) = 0;    
+    virtual void Render(hhModel& model) {};    
 };
 

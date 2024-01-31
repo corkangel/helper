@@ -42,4 +42,12 @@ int main(int, char**)
     hhModel model;
     model.Configure(task);
 
+    for (int i=0; i < 10000; i++)
+    {
+        model.Train();
+        if (model.lastTrainError < 0.001f)
+        {
+            break;
+        }
+    }
 }
