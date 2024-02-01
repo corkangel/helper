@@ -16,7 +16,10 @@ target_link_libraries(helper PRIVATE sfml-graphics)
 add_executable(test model.cpp test.cpp)
 target_link_libraries(helper PRIVATE sfml-graphics)
 
-install(TARGETS helper test)
+add_executable(images model.cpp images.cpp render.cpp)
+target_link_libraries(images PRIVATE sfml-graphics)
+
+install(TARGETS helper test images)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

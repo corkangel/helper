@@ -82,7 +82,7 @@ public:
     float lastTrainTime = 0;
 
     std::vector<hhLayer*> layers;
-
+    std::vector<int> indicies;
 };
 
 

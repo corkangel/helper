@@ -273,6 +273,9 @@ void hhModel::Configure(hhTask& task)
     {
         AddLayer(layer.type, layer.numNeurons, layer.numInputs);
     }
+
+    indicies.resize(task.inputs.size());
+    std::iota(indicies.begin(), indicies.end(), 0);
 }
 
 void hhModel::Forward(const column& input)
@@ -305,10 +308,16 @@ void hhModel::Train()
     {
         bool first = true;
         float error = 0.0f;
-        for (int i = 0; i < task->inputs.size(); i++)
+
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(indicies.begin(), indicies.end(), g);
+
+        const int numItems = task->batchSize > 0 ? task->batchSize : int(task->inputs.size());
+        for (int i=0; i < numItems; i++)
         {
-            Forward(task->inputs[i]);
-            error += Backward(task->targets[i]);
+            Forward(task->inputs[indicies[i]]);
+            error += Backward(task->targets[indicies[i]]);
 
             if (first && epoch == task->epochs - 1)
             {
