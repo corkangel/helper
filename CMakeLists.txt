@@ -13,7 +13,10 @@ FetchContent_MakeAvailable(SFML)
 add_executable(helper main.cpp model.cpp render.cpp)
 target_link_libraries(helper PRIVATE sfml-graphics)
 
-install(TARGETS helper)
+add_executable(test model.cpp test.cpp)
+target_link_libraries(helper PRIVATE sfml-graphics)
+
+install(TARGETS helper test)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

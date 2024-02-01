@@ -9,38 +9,26 @@ public:
 
     void Configure(hhModel& model) override
     {
-        learningRate = 0.01f;
-        epochs = 10;
+        learningRate = 0.04f;
+        epochs = 20;
         batchSize = 0;
         inputs = {
             {.1f, .1f},
-            {.2f, .4f},
-            {.9f, .5f},
-            {.5f, .9f}};
+            {.8f, .7f},
+            {.7f, .1f},
+            {.5f, .2f},
+            {.2f, .1f}};
 
         targets = {
-            {.0f, .0f, .0f},         
-            {.1f, .1f, .97f},                 
-            {.1f, .9f, .97f},
-            {.9f, .1f, .1f }};
+            {.9f, .0f, .0f},         
+            {.9f, .0f, .9f},         
+            {.0f, .0f, .97f},                 
+            {.1f, .9f, .7f},                 
+            {.0f, .9f, .1f }};
 
         AddLayer(hhLayerType::Input, 2, 0);
-        AddLayer(hhLayerType::Sigmoid, 4, 2);
-        AddLayer(hhLayerType::Sigmoid, 3, 4);
-    }
-
-    void Render(hhModel& model) override
-    {
-        for (int y=0; y < 20; y++)
-        {
-            for (int x=0; x < 20; x++)
-            {
-                column input = {x / 20.0f, y / 20.0f};
-                model.Predict(input);
-                const auto& output = model.layers.back()->activationValue;
-                printf("(%d, %d) -> (%.2f, %.2f, %.2f)\n", x, y, output[0], output[1], output[2]);
-            }
-        }
+        AddLayer(hhLayerType::Sigmoid, 9, 2);
+        AddLayer(hhLayerType::Sigmoid, 3, 9);
     }
 };
 
@@ -53,7 +41,7 @@ int main(int, char**)
 
     renderWindow rw;
 
-    const int gridSize = 80;
+    const int gridSize = 40;
     matrix outs(gridSize*gridSize);
     for (auto&& o : outs)
         o.resize(3, 0); // (r,g,b)

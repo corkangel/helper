@@ -73,7 +73,7 @@ public:
     float Backward(const column& targets);
     void Train();
 
-    float Predict(const column& input);
+    const column& Predict(const column& input);
 
     hhTask* task = nullptr;
 

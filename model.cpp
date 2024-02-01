@@ -1,5 +1,6 @@
 #include "model.h"
 
+#include <cassert>
 #include <numeric>
 #include <cmath>
 
@@ -37,13 +38,13 @@ hhDenseLayer::hhDenseLayer(int numNeurons, int numInputs) : hhLayer(numNeurons, 
 
 void hhDenseLayer::UpdateWeightsAndBiases(const hhLayer& previous, float learningRate)
 {
-    for (int i = 0; i < numNeurons; i++)
+    for (int n = 0; n < numNeurons; n++)
     {
-        for (int j = 0; j < numInputs; j++)
+        for (int i = 0; i < numInputs; i++)
         {
-            weights[i][j] -= learningRate * previous.activationValue[j] * errors[i];
+            weights[n][i] -= learningRate * previous.activationValue[i] * errors[n];
         }
-        biases[i] -= learningRate * errors[i];
+        biases[n] -= learningRate * errors[n];
     }
 }
 
@@ -55,33 +56,68 @@ hhSigmoidLayer::hhSigmoidLayer(int numNeurons, int numInputs) : hhDenseLayer(num
 
 void hhSigmoidLayer::Forward(const column& input)
 {
-    for (int i = 0; i < numNeurons; i++)
+    assert(input.size() == numInputs);
+
+    for (int n = 0; n < numNeurons; n++)
     {
-        float raw = std::inner_product(input.begin(), input.end(), weights[i].begin(), 0.0f) + biases[i];
-        activationValue[i] = 1.0f / (1.0f + exp(-raw));
+        float raw = biases[n];
+        for (int i = 0; i < numInputs; i++)
+        {
+            raw += input[i] * weights[n][i];
+        }
+        activationValue[n] = 1.0f / (1.0f + exp(-raw));
     }
 }
+
+// float hhSigmoidLayer::Backward(const hhLayer& previous, hhLayer* next, float learningRate, const column& targets)
+// {
+//     float error = 0.0f;
+//     for (int i = 0; i < numNeurons; i++)
+//     {
+//         const float predicted = activationValue[i];
+//         const float dp = predicted * (1.0f - predicted);
+//         if (next == nullptr) // output layer
+//         {
+//             errors[i] = (predicted - targets[i]) * 2 * dp;
+//         }
+//         else
+//         {
+//             errors[i] = 0.0f;
+//             for (int j = 0; j < next->numNeurons; j++)
+//             {
+//                 errors[i] += next->errors[j] * next->weights[j][i];
+//             }
+//             errors[i] *= dp;
+//         }
+//         error += (errors[i] * errors[i]);
+//     }
+
+//     UpdateWeightsAndBiases(previous, learningRate);
+//     return error;
+// }
+
 
 float hhSigmoidLayer::Backward(const hhLayer& previous, hhLayer* next, float learningRate, const column& targets)
 {
     float error = 0.0f;
-    for (int i = 0; i < numNeurons; i++)
+    for (int n = 0; n < numNeurons; n++)
     {
-        const float predicted = activationValue[i];
+        const float predicted = activationValue[n];
+        const float dp = predicted * (1.0f - predicted);
         if (next == nullptr) // output layer
         {
-            errors[i] = (targets[i] - predicted) * predicted * (1.0f - predicted);
+            errors[n] = (predicted - targets[n]) * 2;
         }
         else
         {
-            errors[i] = 0.0f;
-            for (int j = 0; j < next->numNeurons; j++)
+            errors[n] = 0.0f;
+            for (int k = 0; k < next->numNeurons; k++)
             {
-                errors[i] += next->errors[j] * next->weights[j][i];
+                errors[n] += next->errors[k] * next->weights[k][n];
             }
-            errors[i] *= predicted * (1.0f - predicted);
         }
-        error += errors[i] * errors[i];
+        errors[n] *= dp;        
+        error += errors[n] * errors[n];
     }
 
     UpdateWeightsAndBiases(previous, learningRate);
@@ -180,23 +216,54 @@ float hhSoftmaxLayer::Backward(const hhLayer& previous, hhLayer* next, float lea
 
 hhLayer* hhModel::AddLayer(hhLayerType type, int numNeurons, int numInputs)
 {
+    if (numNeurons < 1 || numInputs < 0)
+        return nullptr;
+
     hhLayer* layer = nullptr;
     switch (type)
     {
-    case hhLayerType::Input:
-        layer = new hhInputLayer(numNeurons, numInputs);
-        break;
-    case hhLayerType::Sigmoid:
-        layer = new hhSigmoidLayer(numNeurons, numInputs);
-        break;
-    case hhLayerType::Relu:
-        layer = new hhReluLayer(numNeurons, numInputs);
-        break;
-    case hhLayerType::Softmax:
-        layer = new hhSoftmaxLayer(numNeurons, numInputs);
-        break;
-    default:
-        break;
+        case hhLayerType::Input:
+        {
+            if (layers.size() > 0)
+                return nullptr;
+            layer = new hhInputLayer(numNeurons, numInputs);
+            break;
+        }
+
+        case hhLayerType::Sigmoid:
+        {
+            if (layers.size() == 0)
+                return nullptr;
+            if (layers.back()->numNeurons != numInputs)
+                return nullptr;
+
+            layer = new hhSigmoidLayer(numNeurons, numInputs);
+            break;
+        }
+
+        case hhLayerType::Relu:
+        {
+            if (layers.size() == 0)
+                return nullptr;
+            if (layers.back()->numNeurons != numInputs)
+                return nullptr;
+
+            layer = new hhReluLayer(numNeurons, numInputs);
+            break;
+        }
+
+        case hhLayerType::Softmax:
+        {
+            if (layers.size() == 0)
+                return nullptr;
+            if (layers.back()->numNeurons != numInputs)
+                return nullptr;
+
+            layer = new hhSoftmaxLayer(numNeurons, numInputs);
+            break;
+        }
+        default:
+            break;
     }
 
     layers.push_back(layer);
@@ -260,8 +327,23 @@ void hhModel::Train()
     }
 }
 
-float hhModel::Predict(const column& input)
+const column& hhModel::Predict(const column& input)
 {
     Forward(input);
-    return layers.back()->activationValue[0];
+    return layers.back()->activationValue;
+}
+
+int argmax(const column& values)
+{
+    int index = 0;
+    double highest = -1000;
+    for(int i=0; i < values.size(); i++)
+    {
+        if (values[i] > highest)
+        {
+            highest = values[i];
+            index = i;
+        }
+    }
+    return index;
 }
