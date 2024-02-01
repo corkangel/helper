@@ -9,8 +9,8 @@ public:
 
     void Configure(hhModel& model) override
     {
-        learningRate = 0.04f;
-        epochs = 20;
+        learningRate = 0.1f;
+        epochs = 10;
         batchSize = 0;
         inputs = {
             {.1f, .1f},
@@ -41,7 +41,7 @@ int main(int, char**)
 
     renderWindow rw;
 
-    const int gridSize = 40;
+    const int gridSize = 80;
     matrix outs(gridSize*gridSize);
     for (auto&& o : outs)
         o.resize(3, 0); // (r,g,b)
@@ -55,11 +55,8 @@ int main(int, char**)
         {
             for (int x=0; x < gridSize; x++)
             {
-                column ins(2); // (x,y)
-                ins[0] = x*1.0f/gridSize;
-                ins[1] = y*1.0f/gridSize;
-                model.Predict(ins);
-                outs[y*gridSize + x] = model.layers.back()->activationValue;           
+                const column ins = {float(x)/gridSize, float(y)/gridSize};
+                outs[y*gridSize + x] = model.Predict(ins);
             }
         }
 

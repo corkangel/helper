@@ -3,6 +3,7 @@
 #include <cassert>
 #include <numeric>
 #include <cmath>
+#include <random>
 
 // ---------------------------- layers ----------------------------
 
@@ -32,8 +33,20 @@ void hhInputLayer::Forward(const column& input)
 
 hhDenseLayer::hhDenseLayer(int numNeurons, int numInputs) : hhLayer(numNeurons, numInputs)
 {
-    weights.resize(numNeurons, column(numInputs, 0.0f));
-    biases.resize(numNeurons, 0.0f);
+    weights.resize(numNeurons, column(numInputs));
+    biases.resize(numNeurons);
+
+    // Create a random number generator
+    std::default_random_engine generator;
+    std::uniform_real_distribution<float> distribution(-1.0, 1.0);
+
+    // Initialize weights
+    for (int i = 0; i < numNeurons; i++) {
+        for (int j = 0; j < numInputs; j++) {
+            weights[i][j] = distribution(generator);
+        }
+        biases[i] = distribution(generator);
+    }
 }
 
 void hhDenseLayer::UpdateWeightsAndBiases(const hhLayer& previous, float learningRate)
@@ -106,7 +119,7 @@ float hhSigmoidLayer::Backward(const hhLayer& previous, hhLayer* next, float lea
         const float dp = predicted * (1.0f - predicted);
         if (next == nullptr) // output layer
         {
-            errors[n] = (predicted - targets[n]) * 2;
+            errors[n] = (predicted - targets[n]) * 2 * dp;
         }
         else
         {
@@ -116,7 +129,7 @@ float hhSigmoidLayer::Backward(const hhLayer& previous, hhLayer* next, float lea
                 errors[n] += next->errors[k] * next->weights[k][n];
             }
         }
-        errors[n] *= dp;        
+        errors[n] *= dp;
         error += errors[n] * errors[n];
     }
 
@@ -320,7 +333,8 @@ void hhModel::Train()
             {
                 first = false;
                 lastTrainError = error;
-                printf("epoch %d, error %f\n", numEpochs, error);
+                if (numEpochs % 1000 == 0)
+                    printf("epoch %d, error %f\n", numEpochs, error);
             }
             numEpochs++;
         }
@@ -346,4 +360,15 @@ int argmax(const column& values)
         }
     }
     return index;
+}
+
+float dotProduct(const column& a, const column& b)
+{
+    assert(a.size() == b.size());
+
+    float result = 0.0f;
+    for (size_t i = 0; i < a.size(); i++) {
+        result += a[i] * b[i];
+    }
+    return result;
 }
