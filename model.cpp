@@ -35,18 +35,6 @@ hhDenseLayer::hhDenseLayer(int numNeurons, int numInputs) : hhLayer(numNeurons, 
 {
     weights.resize(numNeurons, column(numInputs));
     biases.resize(numNeurons);
-
-    // Create a random number generator
-    std::default_random_engine generator;
-    std::uniform_real_distribution<float> distribution(-1.0, 1.0);
-
-    // Initialize weights
-    for (int i = 0; i < numNeurons; i++) {
-        for (int j = 0; j < numInputs; j++) {
-            weights[i][j] = distribution(generator);
-        }
-        biases[i] = distribution(generator);
-    }
 }
 
 void hhDenseLayer::UpdateWeightsAndBiases(const hhLayer& previous, float learningRate)
@@ -65,50 +53,30 @@ void hhDenseLayer::UpdateWeightsAndBiases(const hhLayer& previous, float learnin
 
 hhSigmoidLayer::hhSigmoidLayer(int numNeurons, int numInputs) : hhDenseLayer(numNeurons, numInputs)
 {
+        // Create a random number generator
+    std::default_random_engine generator;
+    std::uniform_real_distribution<float> distribution(-1.0f, 1.0f);
+
+    // Initialize weights
+    for (int i = 0; i < numNeurons; i++) 
+    {
+        for (int j = 0; j < numInputs; j++) 
+        {
+            weights[i][j] = distribution(generator);
+        }
+        biases[i] = distribution(generator);
+    }
 }
 
 void hhSigmoidLayer::Forward(const column& input)
 {
     assert(input.size() == numInputs);
-
     for (int n = 0; n < numNeurons; n++)
     {
-        float raw = biases[n];
-        for (int i = 0; i < numInputs; i++)
-        {
-            raw += input[i] * weights[n][i];
-        }
+        float raw = std::inner_product(input.begin(), input.end(), weights[n].begin(), 0.0f) + biases[n];
         activationValue[n] = 1.0f / (1.0f + exp(-raw));
     }
 }
-
-// float hhSigmoidLayer::Backward(const hhLayer& previous, hhLayer* next, float learningRate, const column& targets)
-// {
-//     float error = 0.0f;
-//     for (int i = 0; i < numNeurons; i++)
-//     {
-//         const float predicted = activationValue[i];
-//         const float dp = predicted * (1.0f - predicted);
-//         if (next == nullptr) // output layer
-//         {
-//             errors[i] = (predicted - targets[i]) * 2 * dp;
-//         }
-//         else
-//         {
-//             errors[i] = 0.0f;
-//             for (int j = 0; j < next->numNeurons; j++)
-//             {
-//                 errors[i] += next->errors[j] * next->weights[j][i];
-//             }
-//             errors[i] *= dp;
-//         }
-//         error += (errors[i] * errors[i]);
-//     }
-
-//     UpdateWeightsAndBiases(previous, learningRate);
-//     return error;
-// }
-
 
 float hhSigmoidLayer::Backward(const hhLayer& previous, hhLayer* next, float learningRate, const column& targets)
 {
@@ -142,14 +110,28 @@ float hhSigmoidLayer::Backward(const hhLayer& previous, hhLayer* next, float lea
 
 hhReluLayer::hhReluLayer(int numNeurons, int numInputs) : hhDenseLayer(numNeurons, numInputs)
 {
+    // Create a random number generator
+    std::default_random_engine generator;
+    std::uniform_real_distribution<float> distribution(-0.1f, 0.1f);
+
+    // Initialize weights
+    for (int n = 0; n < numNeurons; n++) 
+    {
+        for (int j = 0; j < numInputs; j++) 
+        {
+            weights[n][j] = distribution(generator);
+        }
+        biases[n] = distribution(generator);
+    }
 }
 
 void hhReluLayer::Forward(const column& input)
 {
-    for (int i = 0; i < numNeurons; i++)
+    assert(input.size() == numInputs);
+    for (int n = 0; n < numNeurons; n++)
     {
-        float raw = std::inner_product(input.begin(), input.end(), weights[i].begin(), 0.0f) + biases[i];
-        activationValue[i] = std::max(0.0f, raw);
+        float raw = std::inner_product(input.begin(), input.end(), weights[n].begin(), 0.0f) + biases[n];
+        activationValue[n] = std::max(0.0f, raw);
     }
 }
 
@@ -173,7 +155,6 @@ float hhReluLayer::Backward(const hhLayer& previous, hhLayer* next, float learni
             errors[i] *= (predicted > 0.0f ? 1.0f : 0.0f);
         }
     }
-
     UpdateWeightsAndBiases(previous, learningRate);
     return error;
 }

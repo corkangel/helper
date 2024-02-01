@@ -9,8 +9,8 @@ public:
 
     void Configure(hhModel& model) override
     {
-        learningRate = 0.1f;
-        epochs = 10;
+        learningRate = 0.2f;
+        epochs = 40;
         batchSize = 0;
         inputs = {
             {.1f, .1f},
